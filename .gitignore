@@ -1,37 +1,17 @@
-# CHARLS and other research data
+# Controlled-access CHARLS data and derived individual-level files
+stage/
+phase1/
+cohort/
+models/
 *.dta
 *.sav
 *.sas7bdat
-*.por
-*.RData
-*.rds
+*intervals.csv
 
-# Spreadsheet/data files
-*.xlsx
-*.xls
-*.csv
-
-# Compressed data
-*.zip
-*.7z
-*.rar
-
-# Data directories
-data/raw/
-data/processed/
-data/derived/
-
-# R temporary files
-.Rhistory
-.RData
-.Ruserdata
-.Rproj.user/
-
-# macOS / Windows
+# Generated artifacts and local environments
+publication_outputs/
+publication_outputs_package.zip
+.venv/
+__pycache__/
+*.py[cod]
 .DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-~$*
