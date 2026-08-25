@@ -1,0 +1,37 @@
+# CHARLS and other research data
+*.dta
+*.sav
+*.sas7bdat
+*.por
+*.RData
+*.rds
+
+# Spreadsheet/data files
+*.xlsx
+*.xls
+*.csv
+
+# Compressed data
+*.zip
+*.7z
+*.rar
+
+# Data directories
+data/raw/
+data/processed/
+data/derived/
+
+# R temporary files
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+~$*
