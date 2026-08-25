@@ -1,0 +1,7 @@
+domain,model,parameters,NLL,LR_vs_126,df,P
+Pain,78: family-shared,78,53918.82,-,-,-
+Pain,110: living-specific/death-shared,110,53857.36,33.38,16,0.007
+Pain,126: all transitions specific,126,53840.67,Reference,-,-
+Function,78: family-shared,78,47678.98,-,-,-
+Function,110: living-specific/death-shared,110,47555.05,25.54,16,0.061
+Function,126: all transitions specific,126,47542.28,Reference,-,-

@@ -1,0 +1,6 @@
+flow_stage,n,excluded_reason,excluded_n
+Unique CHARLS IDs,26347,Not age-eligible or age unavailable,2536.0
+Age >=45 years,23811,No joint entry state,277.0
+Joint entry state and complete covariates,23369,Incomplete entry covariates,165.0
+Primary analysis,21235,No included adjacent interval,2134.0
+Observed death endpoints,1973,,

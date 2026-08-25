@@ -1,0 +1,7 @@
+domain,model,delta_nll
+pain,78: family-shared,78.15290525542514
+pain,"110: living-specific, death-shared",16.690166257249075
+pain,126: all transitions specific,0.0
+function,78: family-shared,136.70597511958476
+function,"110: living-specific, death-shared",12.772378265137377
+function,126: all transitions specific,0.0
