@@ -50,6 +50,7 @@ def main() -> None:
     parser.add_argument("--draws", type=int, default=5000)
     args = parser.parse_args()
     domain = args.domain
+    print(f"[{domain}] starting 126-parameter model refinement", flush=True)
     out = fit.FIVE / "models" / domain
     intervals = pd.read_csv(out / "fivewave_primary_intervals.csv", dtype={"person_id": "string", "household_id": "string", "cluster_id": "string"})
     data = fit.group_intervals(intervals)
@@ -69,6 +70,11 @@ def main() -> None:
                         model_covariance=model_covariance, household_robust_covariance=robust)
     pd.DataFrame(hrs).to_csv(out / "fivewave_final_full_household_robust_hr.csv", index=False)
     pd.DataFrame(probabilities).to_csv(out / "fivewave_final_full_period_probabilities.csv", index=False)
+    print(
+        f"[{domain}] primary model complete: NLL={nll:.6f}; "
+        f"projected gradient={max_projected:.6g}",
+        flush=True,
+    )
 
     original_audit = json.loads((out / "fivewave_primary_audit.json").read_text(encoding="utf-8"))
     shared_nll = original_audit["shared_fit"]["negative_log_likelihood"]
@@ -103,6 +109,7 @@ def main() -> None:
                              weighted_data, full_theta, 4, args.maxiter,
                              {"missing_weights": int(weight_values.isna().sum())})
     sensitivity_rows.append(row)
+    print(f"[{domain}] sensitivity 1/4 complete: cross-sectional weighted", flush=True)
     weight_audit["fit"] = row
     (out / "fivewave_final_weighted_audit.json").write_text(json.dumps(weight_audit, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -111,21 +118,27 @@ def main() -> None:
     row, _ = fit_sensitivity(domain, "strict-complete-11-item-function", strict_intervals, strict_data,
                              full_theta, 4, args.maxiter)
     sensitivity_rows.append(row)
+    print(f"[{domain}] sensitivity 2/4 complete: strict 11-item function", flush=True)
     (out / "fivewave_final_strict_function_audit.json").write_text(json.dumps({"interval_build": strict_build, "fit": row}, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    exit_ids = pd.read_stata(fit.FIVE / "stage" / "2013" / "Exit_Interview.dta", columns=["ID"], convert_categoricals=False)["ID"].astype("string").str.replace(r"\.0$", "", regex=True)
-    exit_only = long.copy()
-    wave2013 = exit_only.wave.eq(2013)
-    weight_only_death = wave2013 & exit_only.death_confirmed.eq(1) & ~exit_only.person_id.astype("string").isin(set(exit_ids.dropna()))
-    exit_only.loc[weight_only_death, "death_confirmed"] = 0
-    exit_only.loc[weight_only_death, "died_raw"] = 0
-    for column in ["pain_state_with_death", "function_state", "function_state_complete11", "joint_state"]:
-        exit_only.loc[weight_only_death, column] = pd.NA
+    exit_ids = pd.read_stata(
+        fit.FIVE / "stage" / "2013" / "Exit_Interview.dta",
+        columns=["ID"],
+        convert_categoricals=False,
+    )["ID"].astype("string").str.replace(r"\.0$", "", regex=True)
+    exit_only, weight_only_death = fit.apply_exit_interview_only_death_definition(
+        long, set(exit_ids.dropna())
+    )
     death_intervals, death_build = fit.prepare_intervals(domain, exit_only)
     death_data = fit.group_intervals(death_intervals)
     row, _ = fit_sensitivity(domain, "2013-exit-interview-deaths-only", death_intervals, death_data,
                              full_theta, 4, args.maxiter, {"weight_only_deaths_reclassified": int(weight_only_death.sum())})
     sensitivity_rows.append(row)
+    print(
+        f"[{domain}] sensitivity 3/4 complete: exit-interview deaths only; "
+        f"vital status set to unknown for {int(weight_only_death.sum())} weight-only deaths",
+        flush=True,
+    )
     (out / "fivewave_final_exit_death_audit.json").write_text(json.dumps({"interval_build": death_build, "fit": row}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     no2013 = long.loc[long.wave.ne(2013)].copy()
@@ -136,6 +149,7 @@ def main() -> None:
     row, _ = fit_sensitivity(domain, "leave-2013-out", leave_intervals, leave_data,
                              leave_initial, 3, args.maxiter)
     sensitivity_rows.append(row)
+    print(f"[{domain}] sensitivity 4/4 complete: excluding 2013 observations", flush=True)
     (out / "fivewave_final_leave_2013_out_audit.json").write_text(json.dumps({"interval_build": leave_build, "fit": row}, ensure_ascii=False, indent=2), encoding="utf-8")
     pd.DataFrame(sensitivity_rows).to_csv(out / "fivewave_final_sensitivity_summary.csv", index=False)
     print(json.dumps({"final": final_audit, "sensitivities": sensitivity_rows}, ensure_ascii=False, indent=2))

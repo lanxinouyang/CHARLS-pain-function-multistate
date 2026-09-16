@@ -111,6 +111,38 @@ def sampling_weights(intervals: pd.DataFrame) -> tuple[pd.Series, dict]:
     return result, audit
 
 
+def apply_exit_interview_only_death_definition(
+    long: pd.DataFrame,
+    exit_ids: set[str],
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Ignore weight-only 2013 death flags without assuming survival.
+
+    A record identified as dead only by ``INDV_L_Died`` has unknown vital
+    status once that source is deliberately excluded.  It must therefore not
+    be converted to ``died_raw == 0`` because ``legacy.valid_alive`` interprets
+    a sample record with that value as evidence of survival.
+    """
+    exit_only = long.copy()
+    wave2013 = exit_only["wave"].eq(2013)
+    weight_only_death = (
+        wave2013
+        & exit_only["death_confirmed"].eq(1)
+        & ~exit_only["person_id"].astype("string").isin(exit_ids)
+    )
+    exit_only.loc[weight_only_death, "death_confirmed"] = 0
+    exit_only.loc[weight_only_death, "died_raw"] = pd.NA
+    if "vital_observation" in exit_only:
+        exit_only.loc[weight_only_death, "vital_observation"] = "unknown_after_exit_only_definition"
+    for column in [
+        "pain_state_with_death",
+        "function_state",
+        "function_state_complete11",
+        "joint_state",
+    ]:
+        exit_only.loc[weight_only_death, column] = pd.NA
+    return exit_only, weight_only_death
+
+
 def group_intervals(intervals: pd.DataFrame, case_weights: pd.Series | None = None) -> PeriodData:
     keys = ["period_code", "interval_years", "exposure_code", *legacy.CONFOUNDER_NAMES]
     working = intervals.copy()
@@ -533,15 +565,14 @@ def run_sensitivities(domain: str, primary_result: dict, maxiter: int) -> list[d
     (out / "fivewave_strict_function_audit.json").write_text(json.dumps({"interval_build": strict_audit, "fit": strict_fit}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Restrict 2013 death confirmation to direct Exit Interview records.
-    exit_ids = pd.read_stata(FIVE / "stage" / "2013" / "Exit_Interview.dta", columns=["ID"], convert_categoricals=False)["ID"].astype("string").str.replace(r"\.0$", "", regex=True)
-    exit_only = long.copy()
-    wave2013 = exit_only.wave.eq(2013)
-    not_exit = wave2013 & ~exit_only.person_id.astype("string").isin(set(exit_ids.dropna()))
-    weight_only_death = not_exit & exit_only.death_confirmed.eq(1)
-    exit_only.loc[weight_only_death, "death_confirmed"] = 0
-    exit_only.loc[weight_only_death, "died_raw"] = 0
-    for col in ["pain_state_with_death", "function_state", "function_state_complete11", "joint_state"]:
-        exit_only.loc[weight_only_death, col] = pd.NA
+    exit_ids = pd.read_stata(
+        FIVE / "stage" / "2013" / "Exit_Interview.dta",
+        columns=["ID"],
+        convert_categoricals=False,
+    )["ID"].astype("string").str.replace(r"\.0$", "", regex=True)
+    exit_only, weight_only_death = apply_exit_interview_only_death_definition(
+        long, set(exit_ids.dropna())
+    )
     death_intervals, death_audit = prepare_intervals(domain, exit_only)
     death_data = group_intervals(death_intervals)
     death_fit_theta, death_fit = fit_model(death_data, "primary", 4, primary, maxiter)

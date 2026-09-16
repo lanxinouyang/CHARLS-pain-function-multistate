@@ -1,0 +1,49 @@
+{
+  "domain": "function",
+  "final_model": "126 parameters; all nine transitions have distinct confounder coefficients",
+  "people": 21235,
+  "intervals": 62135,
+  "household_clusters": 12577,
+  "negative_log_likelihood": 47542.27558063593,
+  "refinement": {
+    "model": "full",
+    "parameters": 126,
+    "negative_log_likelihood": 47542.27558063593,
+    "optimizer_success": true,
+    "optimizer_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "iterations": 2,
+    "max_abs_gradient": 0.000724637100419416,
+    "active_bound_parameters": 0,
+    "elapsed_seconds": 2.39
+  },
+  "max_abs_gradient": 0.000724637100419416,
+  "max_abs_projected_gradient": 0.000724637100419416,
+  "active_bound_indices": [],
+  "comparisons": {
+    "shared_78_vs_full_126": {
+      "chi_square": 273.4119502409594,
+      "df": 48,
+      "p_value": 2.625520653632684e-33
+    },
+    "primary_110_vs_full_126": {
+      "chi_square": 25.54475653206464,
+      "df": 16,
+      "p_value": 0.06077989850527408
+    }
+  },
+  "hessian_minimum_eigenvalue": 0.5431680798604921,
+  "hessian_condition_number": 39401.43838091694,
+  "robust_covariance": {
+    "intervals": 62135,
+    "clusters": 12577,
+    "parameters": 126,
+    "finite_sample_correction": 1.0020955132426193,
+    "max_abs_total_score": 0.0007246370992486303
+  },
+  "probability_covariance": {
+    "minimum_eigenvalue_before": 5.499310086115961e-05,
+    "eigenvalues_adjusted": 0,
+    "cutoff": 7.732500593944681e-10
+  },
+  "probability_draws": 5000
+}

@@ -1,0 +1,60 @@
+{
+  "interval_build": {
+    "domain": "function",
+    "eligible_people": 23811,
+    "no_joint_state_entry": 1379,
+    "no_complete_baseline_confounders": 103,
+    "people_with_model_entry": 22329,
+    "candidate_intervals_after_entry": 49997,
+    "excluded_start_outcome_missing": 6496,
+    "excluded_start_exposure_missing": 1033,
+    "excluded_destination_vital_unknown": 0,
+    "included_intervals": 42468,
+    "fully_observed_destinations": 35559,
+    "alive_unknown_destinations": 5208,
+    "death_destinations": 1701,
+    "included_people": 17682,
+    "entry_wave_counts": {
+      "2011": 9999,
+      "2013": 3797,
+      "2015": 2341,
+      "2018": 1545
+    },
+    "start_exposure_counts": {
+      "P0": 22855,
+      "P1": 4601,
+      "P2": 15012
+    },
+    "origin_counts": {
+      "F0": 25769,
+      "F1": 5435,
+      "F2": 11264
+    },
+    "destination_counts": {
+      "ALIVE_UNKNOWN": 5208,
+      "D": 1701,
+      "F0": 19873,
+      "F1": 4507,
+      "F2": 11179
+    }
+  },
+  "fit": {
+    "analysis": "strict-complete-11-item-function",
+    "domain": "function",
+    "pathway": "F0->F2, P2 vs P0",
+    "hr": 1.6997157887799879,
+    "people": 17682,
+    "intervals": 42468,
+    "model": "full",
+    "parameters": 126,
+    "negative_log_likelihood": 36114.2584804918,
+    "optimizer_success": true,
+    "optimizer_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+    "iterations": 472,
+    "max_abs_gradient": 0.0003571038025790285,
+    "active_bound_parameters": 0,
+    "elapsed_seconds": 240.41,
+    "max_abs_projected_gradient": 0.0003571038025790285,
+    "active_bound_indices": ""
+  }
+}

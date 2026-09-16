@@ -1,6 +1,6 @@
 # Five-wave CHARLS pain-function multistate analysis
 
-Reproducible analysis code for the study **Bidirectional associations between musculoskeletal pain burden and functional limitations in middle-aged and older Chinese adults: a multistate analysis**.
+Reproducible analysis code for the study **Bidirectional transitions between musculoskeletal pain burden and functional limitations in middle-aged and older Chinese adults: a five-wave multistate cohort study**.
 
 ## What is included
 
@@ -8,7 +8,7 @@ Reproducible analysis code for the study **Bidirectional associations between mu
 - wave-specific construction and audit of the 2013 sample-information file required by the public-release layout;
 - analytic cohort and adjacent-wave interval construction;
 - continuous-time multistate models for pain and function, household-cluster robust inference, model-structure tests, and sensitivity analyses;
-- publication figures and Scientific Reports document-generation code;
+- publication-figure generation code;
 - non-disclosive aggregate table/figure source data in `source_data/` and numerical starting values.
 
 ## Data availability
@@ -29,20 +29,45 @@ pip install -r requirements.txt
 
 ```bash
 python build_2013_sample_info.py
-python charls_multistate_clean_5wave.py --stage stage --output .
-python charls_cohort_build_5wave.py --output .
-python fit_fivewave_ctmc.py --domain pain
-python fit_fivewave_ctmc.py --domain function
+python charls_multistate_clean_5wave.py --stage stage --output phase1
+python charls_cohort_build_5wave.py \
+  --stage stage \
+  --phase1 phase1/CHARLS_统一长格式数据_2011_2020_5wave.csv \
+  --output cohort
+python fit_fivewave_ctmc.py --domain pain --skip-sensitivities
+python fit_fivewave_ctmc.py --domain function --skip-sensitivities
 python finalize_full_fivewave.py --domain pain
 python finalize_full_fivewave.py --domain function
 python generate_fivewave_figures.py
-python build_scirep_fivewave_package.py
 ```
 
+The two `fit_fivewave_ctmc.py` commands estimate the nested 78-, 110-, and
+126-parameter structures. The two `finalize_full_fivewave.py` commands refine
+the selected 126-parameter models, calculate household-robust inference and
+probabilities, and run the four sensitivity analyses. `--skip-sensitivities`
+avoids first running a redundant set under the intermediate 110-parameter
+model.
+
 Model fitting is computationally intensive. The `initial_values/` directory contains aggregate numerical starting values used only to initialise the optimisers; it contains no participant records.
+
+`generate_fivewave_figures.py` can run in either of two modes. With authorised
+data and model outputs present, it refreshes `source_data/` and the figures.
+Without controlled data, it rebuilds the figures directly from the supplied
+non-disclosive files in `source_data/`.
+
+Run the lightweight regression tests with:
+
+```bash
+python -m unittest discover -s tests
+```
+
+Journal-submission documents are maintained separately from the reproducible
+analysis pipeline. This repository does not generate a journal submission
+package; the manuscript submitted to BMC Geriatrics must use the title and
+files supplied in the BMC submission package.
 
 The primary models use `rural_nbs`, defined as rural versus urban community classification, as the model-entry residence covariate. The strict complete 11-item sensitivity analysis determines raw BADL/IADL item completeness before applying the structural-skip recoding used by the primary function-state definition.
 
 ## Repository hygiene
 
-The `.gitignore` excludes controlled data and participant-level derived files. Before publishing, add final authors, a repository licence chosen by the authors, and a DOI/citation after archiving. Every script and aggregate output should be independently verified by the authors.
+The `.gitignore` excludes controlled data and participant-level derived files. Licence and citation information for reuse should be taken from the corresponding public repository and archived release. Every script and aggregate output should be independently verified by users.

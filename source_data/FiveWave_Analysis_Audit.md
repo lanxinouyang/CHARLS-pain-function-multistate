@@ -38,3 +38,15 @@ These are conditional observational associations. They do not establish causal d
 - People: 17,682; intervals: 42,468.
 - Pain model, P0→P2, F2 vs F0: HR 1.550409.
 - Function model, F0→F2, P2 vs P0: HR 1.699715.
+
+## Corrected 2013 Exit Interview-only sensitivity analysis
+
+- Thirty-one deaths identified only from non-Exit-Interview sources were set to unknown vital/state outcomes; they were not treated as known alive.
+- People: 21,206; intervals: 62,106.
+- Pain model, P0→P2, F2 vs F0: HR 1.892414.
+- Function model, F0→F2, P2 vs P0: HR 2.177908.
+- Both optimisations converged; maximum projected gradients were 0.000581 (pain) and 0.000748 (function).
+
+## Full rerun record (2026-08-29)
+
+The two 126-parameter primary models and all four prespecified sensitivity analyses were rerun with a maximum of 900 optimisation iterations and 5,000 probability draws. The primary estimates were unchanged. Cross-sectional weighted, strict complete, Exit Interview-only, and leave-2013-out analyses all converged in both domains. Detailed machine-readable diagnostics are included with the aggregate source data.

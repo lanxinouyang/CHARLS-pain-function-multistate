@@ -1,0 +1,61 @@
+{
+  "interval_build": {
+    "domain": "pain",
+    "eligible_people": 23811,
+    "no_joint_state_entry": 277,
+    "no_complete_baseline_confounders": 165,
+    "people_with_model_entry": 23369,
+    "candidate_intervals_after_entry": 64483,
+    "excluded_start_outcome_missing": 2064,
+    "excluded_start_exposure_missing": 284,
+    "excluded_destination_vital_unknown": 29,
+    "included_intervals": 62106,
+    "fully_observed_destinations": 58040,
+    "alive_unknown_destinations": 2122,
+    "death_destinations": 1944,
+    "included_people": 21206,
+    "entry_wave_counts": {
+      "2011": 15252,
+      "2013": 3001,
+      "2015": 2265,
+      "2018": 688
+    },
+    "start_exposure_counts": {
+      "F0": 44296,
+      "F1": 6352,
+      "F2": 11458
+    },
+    "origin_counts": {
+      "P0": 39326,
+      "P1": 5839,
+      "P2": 16941
+    },
+    "destination_counts": {
+      "ALIVE_UNKNOWN": 2122,
+      "D": 1944,
+      "P0": 32878,
+      "P1": 6417,
+      "P2": 18745
+    }
+  },
+  "fit": {
+    "analysis": "2013-exit-interview-deaths-only",
+    "domain": "pain",
+    "pathway": "P0->P2, F2 vs F0",
+    "hr": 1.892414437785077,
+    "people": 21206,
+    "intervals": 62106,
+    "model": "full",
+    "parameters": 126,
+    "negative_log_likelihood": 53750.166055715374,
+    "optimizer_success": true,
+    "optimizer_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "iterations": 409,
+    "max_abs_gradient": 0.24133337592529794,
+    "active_bound_parameters": 1,
+    "elapsed_seconds": 262.38,
+    "max_abs_projected_gradient": 0.0005810193867431292,
+    "active_bound_indices": "10",
+    "weight_only_deaths_reclassified": 31
+  }
+}

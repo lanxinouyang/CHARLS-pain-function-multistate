@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Scientific Reports figures for the audited five-wave analysis."""
+"""Generate journal-neutral figures for the audited five-wave analysis."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-import generate_scirep_figures as g
+import figure_helpers as g
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,7 +22,7 @@ from matplotlib.ticker import NullFormatter
 FIVE = ROOT
 PACKAGE = ROOT / "publication_outputs"
 OUT = PACKAGE / "figures"
-SOURCE = PACKAGE / "source_data"
+SOURCE = ROOT / "source_data"
 OUT.mkdir(parents=True, exist_ok=True)
 SOURCE.mkdir(parents=True, exist_ok=True)
 g.OUT = OUT
@@ -43,8 +43,33 @@ IMPROVEMENT = "#2A8F83"
 MORTALITY = "#7B879B"
 
 
+def model_file(domain: str, name: str) -> Path:
+    return FIVE / "models" / domain / name
+
+
+def first_existing(*paths: Path) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    raise FileNotFoundError("None of the required files exists: " + ", ".join(map(str, paths)))
+
+
 def final_hr(domain: str) -> pd.DataFrame:
-    return pd.read_csv(FIVE / "models" / domain / "fivewave_final_full_household_robust_hr.csv")
+    path = first_existing(
+        model_file(domain, "fivewave_final_full_household_robust_hr.csv"),
+        SOURCE / f"Fig2_{domain}_transition_HRs.csv",
+        SOURCE / f"{domain}_fivewave_final_full_household_robust_hr.csv",
+    )
+    return pd.read_csv(path)
+
+
+def final_probabilities(domain: str) -> pd.DataFrame:
+    path = first_existing(
+        model_file(domain, "fivewave_final_full_period_probabilities.csv"),
+        SOURCE / f"Fig3_{domain}_period_probabilities.csv",
+        SOURCE / f"{domain}_fivewave_final_full_period_probabilities.csv",
+    )
+    return pd.read_csv(path)
 
 
 def _panel(ax, edge=PANEL_EDGE):
@@ -250,7 +275,7 @@ def figure2() -> None:
 
 
 def probability_panel(ax, domain, origin, exposures, states, colors, title, primary_dest):
-    data = pd.read_csv(FIVE / "models" / domain / "fivewave_final_full_period_probabilities.csv")
+    data = final_probabilities(domain)
     periods = ["2011-2013", "2013-2015", "2015-2018", "2018-2020"]
     ys = []; labels = []; keys = []
     for i, period in enumerate(periods):
@@ -292,15 +317,43 @@ def figure3() -> None:
 
 
 def figure4() -> None:
-    rows = []
-    for domain in ("pain", "function"):
-        audit = json.loads((FIVE / "models" / domain / "fivewave_primary_audit.json").read_text())
-        values = [("78: family-shared", audit["shared_fit"]["negative_log_likelihood"]),
-                  ("110: living-specific, death-shared", audit["primary_fit"]["negative_log_likelihood"]),
-                  ("126: all transitions specific", audit["full_fit"]["negative_log_likelihood"])]
-        reference = values[-1][1]
-        for label, nll in values: rows.append({"domain": domain, "model": label, "delta_nll": nll - reference})
-    source = pd.DataFrame(rows); source.to_csv(SOURCE / "Fig4_model_selection_source.csv", index=False)
+    primary_audits = {
+        domain: model_file(domain, "fivewave_primary_audit.json")
+        for domain in ("pain", "function")
+    }
+    final_audits = {
+        domain: model_file(domain, "fivewave_final_full_audit.json")
+        for domain in ("pain", "function")
+    }
+    if all(path.exists() for path in [*primary_audits.values(), *final_audits.values()]):
+        rows = []
+        for domain in ("pain", "function"):
+            primary = json.loads(primary_audits[domain].read_text())
+            final = json.loads(final_audits[domain].read_text())
+            values = [
+                ("78: family-shared", primary["shared_fit"]["negative_log_likelihood"]),
+                ("110: living-specific, death-shared", primary["primary_fit"]["negative_log_likelihood"]),
+                ("126: all transitions specific", final["negative_log_likelihood"]),
+            ]
+            reference = values[-1][1]
+            for label, nll in values:
+                rows.append({"domain": domain, "model": label, "delta_nll": nll - reference})
+        source = pd.DataFrame(rows)
+        source.to_csv(SOURCE / "Fig4_model_selection_source.csv", index=False)
+    else:
+        source = pd.read_csv(SOURCE / "Fig4_model_selection_source.csv")
+
+    def comparison_p(domain: str) -> float:
+        if final_audits[domain].exists():
+            comparison = json.loads(final_audits[domain].read_text())["comparisons"]
+            return float(comparison["primary_110_vs_full_126"]["p_value"])
+        table = pd.read_csv(SOURCE / "TableS6_model_selection.csv")
+        row = table.loc[
+            table["domain"].astype(str).str.lower().eq(domain)
+            & pd.to_numeric(table["parameters"], errors="coerce").eq(110)
+        ].iloc[0]
+        return float(row["P"])
+
     fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.45), sharey=True)
     for ax, domain, label in zip(axes, ("pain", "function"), ("a", "b")):
         aligned_panel_label(ax, label, x=-0.06, y=1.04); data = source[source.domain == domain]
@@ -310,8 +363,7 @@ def figure4() -> None:
         short_labels = ["Family-shared (78)", "Living-specific; death-shared (110)", "Transition-specific (126)"]
         ax.set_yticks(y); ax.set_yticklabels(short_labels)
         ax.set_title(f"{domain.capitalize()} model", loc="left", pad=8); ax.grid(axis="x", color="#E5E7EB", lw=0.6); ax.set_axisbelow(True)
-        comparison = json.loads((FIVE / "models" / domain / "fivewave_final_full_audit.json").read_text())["comparisons"]
-        p = comparison["primary_110_vs_full_126"]["p_value"]
+        p = comparison_p(domain)
         ax.text(0.98, 0.05, f"110 vs 126: P={p:.3f}", transform=ax.transAxes, ha="right", fontsize=7.1, color=g.COL["navy"])
     axes[1].tick_params(axis="y", left=False, labelleft=False)
     fig.supxlabel("Increase in negative log-likelihood relative to the transition-specific model", fontsize=8.5, y=0.04)
@@ -346,13 +398,27 @@ def supplementary_counts() -> None:
     for ax, domain, states, title, label in [
         (axes[0], "pain", ["P0", "P1", "P2", "D"], "Observed pain-state endpoint changes", "a"),
         (axes[1], "function", ["F0", "F1", "F2", "D"], "Observed function-state endpoint changes", "b")]:
-        aligned_panel_label(ax, label); data = pd.read_csv(FIVE / "models" / domain / "fivewave_primary_intervals.csv")
-        data = data[data.to_state != "ALIVE_UNKNOWN"]
-        origins = states[:-1]; matrix = np.zeros((3, 4))
-        for i, origin in enumerate(origins):
-            for j, destination in enumerate(states):
-                matrix[i, j] = ((data.from_state == origin) & (data.to_state == destination)).sum()
-                source_rows.append({"domain": domain, "from_state": origin, "to_state": destination, "count": int(matrix[i, j])})
+        aligned_panel_label(ax, label)
+        interval_path = model_file(domain, "fivewave_primary_intervals.csv")
+        origins = states[:-1]
+        matrix = np.zeros((3, 4))
+        if interval_path.exists():
+            data = pd.read_csv(interval_path)
+            data = data[data.to_state != "ALIVE_UNKNOWN"]
+            for i, origin in enumerate(origins):
+                for j, destination in enumerate(states):
+                    matrix[i, j] = ((data.from_state == origin) & (data.to_state == destination)).sum()
+                    source_rows.append({"domain": domain, "from_state": origin, "to_state": destination, "count": int(matrix[i, j])})
+        else:
+            aggregate = pd.read_csv(SOURCE / "FigS2_transition_counts_source.csv")
+            aggregate = aggregate.loc[aggregate["domain"].eq(domain)]
+            lookup = {
+                (row.from_state, row.to_state): int(row.count)
+                for row in aggregate.itertuples(index=False)
+            }
+            for i, origin in enumerate(origins):
+                for j, destination in enumerate(states):
+                    matrix[i, j] = lookup[(origin, destination)]
         ax.imshow(np.log10(matrix + 1), cmap="Blues", vmin=0, vmax=np.log10(max(matrix.max(), 1)))
         for i in range(3):
             for j in range(4):
@@ -363,25 +429,33 @@ def supplementary_counts() -> None:
         for spine in ax.spines.values(): spine.set_visible(False)
         ax.set_xticks(np.arange(-.5, 4, 1), minor=True); ax.set_yticks(np.arange(-.5, 3, 1), minor=True)
         ax.grid(which="minor", color="white", linewidth=1.2); ax.tick_params(which="minor", bottom=False, left=False)
-    pd.DataFrame(source_rows).to_csv(SOURCE / "FigS2_transition_counts_source.csv", index=False)
+    if source_rows:
+        pd.DataFrame(source_rows).to_csv(SOURCE / "FigS2_transition_counts_source.csv", index=False)
     fig.subplots_adjust(wspace=0.38, left=0.10, right=0.99, top=0.88, bottom=0.16)
     g.save(fig, "FigS2_transition_counts_fivewave")
 
 
 def supplementary_sensitivity() -> None:
-    pain = pd.read_csv(FIVE / "models" / "pain" / "fivewave_final_sensitivity_summary.csv")
-    function = pd.read_csv(FIVE / "models" / "function" / "fivewave_final_sensitivity_summary.csv")
-    primary = pd.DataFrame([
-        {"analysis": "primary five-wave", "domain": "pain", "hr": final_hr("pain").query("from_state=='P0' and to_state=='P2' and contrast=='F2 vs F0'").hr.iloc[0]},
-        {"analysis": "primary five-wave", "domain": "function", "hr": final_hr("function").query("from_state=='F0' and to_state=='F2' and contrast=='P2 vs P0'").hr.iloc[0]},
-    ])
-    source = pd.concat([primary, pain[["analysis", "domain", "hr"]], function[["analysis", "domain", "hr"]]], ignore_index=True)
-    source.to_csv(SOURCE / "FigS3_sensitivity_point_estimates_source.csv", index=False)
+    sensitivity_paths = {
+        domain: model_file(domain, "fivewave_final_sensitivity_summary.csv")
+        for domain in ("pain", "function")
+    }
+    if all(path.exists() for path in sensitivity_paths.values()):
+        pain = pd.read_csv(sensitivity_paths["pain"])
+        function = pd.read_csv(sensitivity_paths["function"])
+        primary = pd.DataFrame([
+            {"analysis": "primary five-wave", "domain": "pain", "hr": final_hr("pain").query("from_state=='P0' and to_state=='P2' and contrast=='F2 vs F0'").hr.iloc[0]},
+            {"analysis": "primary five-wave", "domain": "function", "hr": final_hr("function").query("from_state=='F0' and to_state=='F2' and contrast=='P2 vs P0'").hr.iloc[0]},
+        ])
+        source = pd.concat([primary, pain[["analysis", "domain", "hr"]], function[["analysis", "domain", "hr"]]], ignore_index=True)
+        source.to_csv(SOURCE / "FigS3_sensitivity_point_estimates_source.csv", index=False)
+    else:
+        source = pd.read_csv(SOURCE / "FigS3_sensitivity_point_estimates_source.csv")
     labels = ["Five-wave primary", "Cross-sectional weighted", "Strict 11-item function", "2013 exit deaths only", "Excluding 2013 observations"]
     keys = ["primary five-wave", "cross-sectional-weighted", "strict-complete-11-item-function", "2013-exit-interview-deaths-only", "leave-2013-out"]
     fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.7), sharey=True)
     for ax, domain, title, label in zip(axes, ("pain", "function"),
-                                        ("F2 versus F0 for P0 -> P2", "P2 versus P0 for F0 -> F2"), ("a", "b")):
+                                        ("F2 versus F0 for P0 → P2", "P2 versus P0 for F0 → F2"), ("a", "b")):
         aligned_panel_label(ax, label); values = [source[(source.domain == domain) & (source.analysis == key)].hr.iloc[0] for key in keys]
         y = np.arange(len(values))[::-1]; ax.axhspan(y[0] - 0.42, y[0] + 0.42, color="#FFF4DF")
         ax.scatter(values, y, s=28, color=g.COL["navy"], zorder=3); ax.axvline(1, color="#4B5563", ls="--", lw=0.8)
@@ -393,12 +467,71 @@ def supplementary_sensitivity() -> None:
 
 
 def export_source_data() -> None:
-    for domain in ("pain", "function"):
-        final_hr(domain).to_csv(SOURCE / f"Fig2_{domain}_transition_HRs.csv", index=False)
-        pd.read_csv(FIVE / "models" / domain / "fivewave_final_full_period_probabilities.csv").to_csv(
-            SOURCE / f"Fig3_{domain}_period_probabilities.csv", index=False)
-        pd.read_csv(FIVE / "models" / domain / "fivewave_final_sensitivity_summary.csv").to_csv(
-            SOURCE / f"Sensitivity_{domain}_summary.csv", index=False)
+    model_outputs_present = all(
+        model_file(domain, name).exists()
+        for domain in ("pain", "function")
+        for name in (
+            "fivewave_final_full_household_robust_hr.csv",
+            "fivewave_final_full_period_probabilities.csv",
+            "fivewave_final_sensitivity_summary.csv",
+        )
+    )
+    if model_outputs_present:
+        sensitivity = {}
+        for domain in ("pain", "function"):
+            final_hr(domain).to_csv(SOURCE / f"Fig2_{domain}_transition_HRs.csv", index=False)
+            final_probabilities(domain).to_csv(SOURCE / f"Fig3_{domain}_period_probabilities.csv", index=False)
+            sensitivity[domain] = pd.read_csv(
+                model_file(domain, "fivewave_final_sensitivity_summary.csv")
+            )
+            sensitivity[domain].to_csv(SOURCE / f"Sensitivity_{domain}_summary.csv", index=False)
+
+        labels = [
+            ("Five-wave primary analysis", None),
+            ("Cross-sectional weighted", "cross-sectional-weighted"),
+            ("Strict complete 11-item function", "strict-complete-11-item-function"),
+            ("2013 Exit Interview deaths only", "2013-exit-interview-deaths-only"),
+            ("Excluding 2013 observations", "leave-2013-out"),
+        ]
+        primary_people, primary_intervals = 21235, 62135
+        primary_hr = {
+            "pain": float(final_hr("pain").query(
+                "from_state == 'P0' and to_state == 'P2' and contrast == 'F2 vs F0'"
+            ).hr.iloc[0]),
+            "function": float(final_hr("function").query(
+                "from_state == 'F0' and to_state == 'F2' and contrast == 'P2 vs P0'"
+            ).hr.iloc[0]),
+        }
+        rows = []
+        for label, key in labels:
+            if key is None:
+                people, intervals = primary_people, primary_intervals
+                pain_hr, function_hr = primary_hr["pain"], primary_hr["function"]
+            else:
+                pain_row = sensitivity["pain"].loc[sensitivity["pain"]["analysis"].eq(key)].iloc[0]
+                function_row = sensitivity["function"].loc[sensitivity["function"]["analysis"].eq(key)].iloc[0]
+                if (int(pain_row.people), int(pain_row.intervals)) != (int(function_row.people), int(function_row.intervals)):
+                    raise ValueError(f"Pain/function sample mismatch for {key}")
+                people, intervals = int(pain_row.people), int(pain_row.intervals)
+                pain_hr, function_hr = float(pain_row.hr), float(function_row.hr)
+            rows.append({
+                "analysis": label,
+                "people_intervals": f"{people:,} / {intervals:,}",
+                "pain_path_hr": f"{pain_hr:.2f}",
+                "function_path_hr": f"{function_hr:.2f}",
+            })
+        pd.DataFrame(rows).to_csv(SOURCE / "TableS5_sensitivities.csv", index=False)
+    else:
+        required = [
+            *(SOURCE / f"Fig2_{domain}_transition_HRs.csv" for domain in ("pain", "function")),
+            *(SOURCE / f"Fig3_{domain}_period_probabilities.csv" for domain in ("pain", "function")),
+            SOURCE / "Fig4_model_selection_source.csv",
+            SOURCE / "FigS2_transition_counts_source.csv",
+            SOURCE / "FigS3_sensitivity_point_estimates_source.csv",
+        ]
+        missing = [str(path) for path in required if not path.exists()]
+        if missing:
+            raise FileNotFoundError("Missing aggregate figure source files: " + ", ".join(missing))
 
 
 def main() -> None:

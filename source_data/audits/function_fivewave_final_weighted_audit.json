@@ -1,0 +1,49 @@
+{
+  "missing_weights": 1514,
+  "periods": {
+    "2011": {
+      "available": 14621,
+      "p01": 10316.2951171875,
+      "p99": 105625.25468749992,
+      "normalization_mean": 29178.44204324313
+    },
+    "2013": {
+      "available": 14238,
+      "p01": 10563.8916015625,
+      "p99": 95426.68679687446,
+      "normalization_mean": 28205.0749167775
+    },
+    "2015": {
+      "available": 16062,
+      "p01": 10109.750625,
+      "p99": 101491.46703124992,
+      "normalization_mean": 26293.28757222258
+    },
+    "2018": {
+      "available": 15700,
+      "p01": 11297.9758776909,
+      "p99": 130047.22439702894,
+      "normalization_mean": 30903.0777892561
+    }
+  },
+  "fit": {
+    "analysis": "cross-sectional-weighted",
+    "domain": "function",
+    "pathway": "F0->F2, P2 vs P0",
+    "hr": 2.3668027719215825,
+    "people": 20614,
+    "intervals": 60621,
+    "model": "full",
+    "parameters": 126,
+    "negative_log_likelihood": 45636.41975987009,
+    "optimizer_success": true,
+    "optimizer_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "iterations": 587,
+    "max_abs_gradient": 0.000845817604044008,
+    "active_bound_parameters": 0,
+    "elapsed_seconds": 375.52,
+    "max_abs_projected_gradient": 0.000845817604044008,
+    "active_bound_indices": "",
+    "missing_weights": 1514
+  }
+}
